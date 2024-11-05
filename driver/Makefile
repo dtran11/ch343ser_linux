@@ -1,26 +1,27 @@
 CONFIG_MODULE_SIG=n
 
-ifeq ($(KERNELRELEASE), )
-KERNELDIR := /lib/modules/$(shell uname -r)/build
-PWD := $(shell pwd)
-default:
-	$(MAKE) -C $(KERNELDIR)  M=$(PWD)  
+modules:
+	$(MAKE) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -C $(KERNEL_SRC) M=$(shell pwd) modules
+
+modules_install:
+	$(MAKE) -C $(KERNEL_SRC) M=$(shell pwd) modules_install
+
+strip:
+	$(CROSS_COMPILE)strip ch343.ko --strip-unneeded
+
 clean:
 	rm -rf *.mk .tmp_versions Module.symvers *.mod.c *.o *.ko .*.cmd Module.markers modules.order *.a *.mod
+
 load:
 	insmod ch343.ko
+
 unload:
 	rmmod ch343
-install: default
-	insmod ch343.ko || true
-	mkdir -p /lib/modules/$(shell uname -r)/kernel/drivers/usb/serial || true
-	cp -f ./ch343.ko /lib/modules/$(shell uname -r)/kernel/drivers/usb/serial || true
-	@/bin/echo -e "ch343" >> /etc/modules || true
-	depmod -a
+
+install:
+	install -p -m 644 ch343.ko  $(MODDESTDIR)
+	/sbin/depmod -a ${KVER}
+
 uninstall:
-	rmmod ch343 || true
-	rm -rf /lib/modules/$(shell uname -r)/kernel/drivers/usb/serial/ch343.ko || true
-	depmod -a
-else
-	obj-m := ch343.o
-endif
+	rm -f $(MODDESTDIR)/ch343.ko
+	/sbin/depmod -a ${KVER}
